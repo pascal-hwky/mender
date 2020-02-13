@@ -324,27 +324,38 @@ func verifyArtifactDependencies(depends, provides map[string]interface{}) error 
 	return nil
 }
 
-// Check if new update is available. In case of errors, returns nil and error
-// that occurred. If no update is available *UpdateInfo is nil, otherwise it
-// contains update information.
+// CheckUpdate Check if new update is available. In case of errors, returns nil
+// and error that occurred. If no update is available *UpdateInfo is nil,
+// otherwise it contains update information.
 func (m *Mender) CheckUpdate() (*datastore.UpdateInfo, menderError) {
 	currentArtifactName, err := m.GetCurrentArtifactName()
 	if err != nil || currentArtifactName == "" {
-		log.Error("could not get the current artifact name")
+		log.Error("could not get the current Artifact name")
 		if err == nil {
 			err = errors.New("artifact name is empty")
 		}
-		return nil, NewTransientError(fmt.Errorf("could not read the artifact name. This is a necessary condition in order for a mender update to finish safely. Please give the current artifact a name (This can be done by adding a name to the file /etc/mender/artifact_info) err: %v", err))
+		return nil, NewTransientError(fmt.Errorf("could not read the Artifact name. This is a necessary condition in order for a Mender update to finish safely. Please give the current Artifact a name (This can be done by adding a name to the file /etc/mender/artifact_info) err: %v", err))
 	}
 
 	deviceType, err := m.GetDeviceType()
 	if err != nil {
-		log.Errorf("Unable to verify the existing hardware. Update will continue anyways: %v : %v", m.Config.DeviceTypeFile, err)
+		log.Errorf("Unable to verify the existing hardware. Update will continue anyways: %v : %v",
+			m.Config.DeviceTypeFile, err)
 	}
-	haveUpdate, err := m.updater.GetScheduledUpdate(m.api.Request(m.authToken, nextServerIterator(m), reauthorize(m)),
-		m.Config.Servers[0].ServerURL, client.CurrentUpdate{
+	provides, err := m.DeviceManager.GetProvides()
+	if err != nil {
+		log.Errorf("Failed to load the device provides parameters from the datastore. Error: %v. Continuing...",
+			err)
+	}
+	haveUpdate, err := m.updater.GetScheduledUpdate(
+		m.api.Request(m.authToken,
+			nextServerIterator(m),
+			reauthorize(m)),
+		m.Config.Servers[0].ServerURL,
+		client.CurrentUpdate{
 			Artifact:   currentArtifactName,
 			DeviceType: deviceType,
+			Provides:   provides,
 		})
 
 	if err != nil {
@@ -640,9 +651,9 @@ func (m *Mender) InventoryRefresh() error {
 	artifactName, err := m.GetCurrentArtifactName()
 	if err != nil || artifactName == "" {
 		if err == nil {
-			err = errors.New("artifact name is empty")
+			err = errors.New("Artifact name is empty")
 		}
-		errstr := fmt.Sprintf("could not read the artifact name. This is a necessary condition in order for a mender update to finish safely. Please give the current artifact a name (This can be done by adding a name to the file /etc/mender/artifact_info) err: %v", err)
+		errstr := fmt.Sprintf("could not read the artifact name. This is a necessary condition in order for a Mender update to finish safely. Please give the current Artifact a name (This can be done by adding a name to the file /etc/mender/artifact_info) err: %v", err)
 		return errors.Wrap(errNoArtifactName, errstr)
 	}
 
