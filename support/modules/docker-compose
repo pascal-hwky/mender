@@ -33,13 +33,16 @@ case "$STATE" in
             rm -f ${prev_files_tar}
             exit $ret
         fi
+        # Stop old Docker containers
+        cd ${dest_dir}
+        docker-compose stop
+        cd /
         rm -rf ${dest_dir}
         mkdir -p ${dest_dir}
         tar -xf ${update_files_tar} -C ${dest_dir}
-        # Build and run Docker image
+        # Build and run new Docker containers
         cd ${dest_dir}
         docker-compose build
-        docker-compose stop
         docker-compose up -d
         ;;
 
@@ -50,9 +53,15 @@ case "$STATE" in
             echo "Fatal error: dest_dir is undefined." && exit 1
         test "$dest_dir" = "/" && \
             echo "Info: destination dir is '/', not performing rollback." && exit 0
+        cd ${dest_dir}
+        docker-compose stop
+        cd /
         rm -rf ${dest_dir}
         mkdir -p ${dest_dir}
         tar -xf ${prev_files_tar} -C ${dest_dir}
+        cd ${dest_dir}
+        docker-compose build
+        docker-compose up -d
         ;;
 esac
 
